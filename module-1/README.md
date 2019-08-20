@@ -74,7 +74,7 @@ mkdir workshop && cd workshop
 Run the following git command in the terminal to clone the necessary code to complete this tutorial:
 
 ```sh
-git clone -b python-cdk-ts https://github.com/aws-samples/aws-modern-application-workshop.git source
+git clone -b python-cdk-py https://github.com/aws-samples/aws-modern-application-workshop.git source
 ```
 
 After cloning the repository, you'll see that your project explorer now includes the files cloned:
@@ -127,10 +127,10 @@ In the `cdk` folder, lets now initialize a CDK app, where LANGUAGE is one of the
 
 _cdk init app --language LANGUAGE_
 
-For the purposes of this workshop we will use TypeScript as our language:
+For the purposes of this workshop we will use Python as our language:
 
 ```sh
-cdk init --language typescript
+cdk init --language python
 ```
 
 This command has now initialised a new CDK app in your `cdk` folder.  Part of the initialisation process also establishes the given directory as a new git repository.
