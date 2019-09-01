@@ -9,8 +9,8 @@
 
 ---
 
-
 **Services used:**
+
 * [AWS Cloud9](https://aws.amazon.com/cloud9/)
 * [Amazon Simple Storage Service (S3)](https://aws.amazon.com/s3/)
 * [Amazon CloudFront](https://aws.amazon.com/cloudfront/)
@@ -22,6 +22,7 @@ The combination of S3 and CloudFront makes for a wonderfully useful capability f
 ## Getting Started
 
 ### Sign In to the AWS Console
+
 To begin, sign in to the [AWS Console](https://console.aws.amazon.com) for the AWS account you will be using in this workshop.
 
 This web application can be deployed in any AWS region that supports all the services used in this application. The supported regions include:
@@ -43,22 +44,17 @@ Select a region from the dropdown in the upper right corner of the AWS Managemen
  On the AWS Console home page, type **Cloud9** into the service search bar and select it:
  ![aws-console-home](/images/module-1/cloud9-service.png)
 
-
 Click **Create Environment** on the Cloud9 home page:
 ![cloud9-home](/images/module-1/cloud9-home.png)
-
 
 Name your environment **MythicalMysfitsIDE** with any description you'd like, and click **Next Step**:
 ![cloud9-name](/images/module-1/cloud9-name-ide.png)
 
-
 Leave the Environment settings as their defaults and click **Next Step**:
 ![cloud9-configure](/images/module-1/cloud9-configure-env.png)
 
-
 Click **Create Environment**:
 ![cloud9-review](/images/module-1/cloud9-review.png)
-
 
 When the IDE has finished being created for you, you'll be presented with a welcome screen that looks like this:
 ![cloud9-welcome](/images/module-1/cloud9-welcome.png)
@@ -123,9 +119,7 @@ Within the `workshop` folder create a new folder to contain your AWS CDK applica
 mkdir cdk && cd cdk/
 ```
 
-In the `cdk` folder, lets now initialize a CDK app, where LANGUAGE is one of the supported programming languages: csharp (C#), java (Java), python (Python), or typescript (TypeScript) and TEMPLATE is an optional template that creates an app with different resources than the default app that cdk init creates for the language.
-
-_cdk init app --language LANGUAGE_
+In the `cdk` folder, lets now initialize a CDK app, where LANGUAGE is one of the supported programming languages: csharp (C#), java (Java), python (Python), or typescript (TypeScript) and TEMPLATE is an optional template that creates an app with different resources than the default app that cdk init creates for the language: `cdk init app --language LANGUAGE`
 
 For the purposes of this workshop we will use Python as our language:
 
@@ -133,49 +127,66 @@ For the purposes of this workshop we will use Python as our language:
 cdk init --language python
 ```
 
-This command has now initialised a new CDK app in your `cdk` folder.  Part of the initialisation process also establishes the given directory as a new git repository.
+This command has now initialised a new CDK app in your `cdk` folder.  Part of the initialisation process also establishes the given directory as a new git repository. It also prepares a Python virtualenv for you to use.
 
-Notice the standard structure of an AWS CDK app, that consists of a `bin` folder and a `lib` folder.
+> **Note:** feel free to remove the `cdk/cdk_stack.py` file as we will be creating our own stack files.
 
-* The `bin` folder is where we will define the entry point for the CDK app.
-* The `lib` folder is where we will define all our workshop infrastructure components.
+We also need to install the Python CDK libraries in the virtualenv. First, activate the virtualenv in the shell:
 
-> **Note:** feel free to remove the `cdk/lib/cdk-stack.ts` file as we will be creating our own stack files.
+```sh
+source .env/bin/activate
+```
+
+You should see a `(.env)` prefix on your shell prompt indicating the virtualenv is active. You will need to do this if you open new terminals or when you return to the project later.
+
+> **Note:** Cloud9 aliases `python` to a Python 2.7 binary, which is not what we want. Either `unalias python` or use `python3` in commands below to ensure you use the version from the virtualenv.
+
+Add the following lines to `requirements.txt`:
+
+```python
+aws-cdk.aws-cloudfront
+aws-cdk.aws-iam
+aws-cdk.aws-s3
+aws-cdk.aws-s3-deployment
+```
+
+Then run `pip` to install them:
+
+```sh
+pip install -r requirements.txt
+```
 
 ## Creating the Mythical Mysfits Website
 
-Now, let's define the infrastructure needed to host our website.  
+Now, let's define the infrastructure needed to host our website.
 
-Create a new file called `web-application-stack.ts` in the `lib` folder, and define the skeleton class structure by writing/copying the following code:
+Create a new file called `web_application_stack.py` in the `cdk` folder, and define the skeleton class structure by writing/copying the following code:
 
-```typescript
-import cdk = require('@aws-cdk/core');
+```python
+from aws_cdk import core
 
-export class WebApplicationStack extends cdk.Stack {
-  constructor(app: cdk.App, id: string) {
-    super(app, id);
 
-    // The code that defines your stack goes here
-  }
-}
+class CdkStack(core.Stack):
+    def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
+        super().__init__(scope, id, **kwargs)
+
+        # The code that defines your stack goes here
 ```
 
-Add an import statement for the `WebApplicationStack` to the `bin/cdk.ts` file.
+Add an import statement for the `CdkStack` to the `app.py` file, and give the stack a name:
 
-```typescript
-#!/usr/bin/env node
-import 'source-map-support/register';
-import cdk = require('@aws-cdk/core');
-import { WebApplicationStack } from "../lib/web-application-stack";
+```python
+#!/usr/bin/env python3
 
-const app = new cdk.App();
-new WebApplicationStack(app, "MythicalMysfits-Website");
-```
+from aws_cdk import core
 
-Now we have the required files, let's go through defining the S3 and CloudFront infrastructure.  But before we do that, we must add references to the appropriate npm packages that we will be using. Execute the following command from the `workshop/cdk/` directory: 
+from cdk.web_application_stack import CdkStack
 
-```sh
-npm install --save-dev @aws-cdk/aws-cloudfront @aws-cdk/aws-iam @aws-cdk/aws-s3 @aws-cdk/aws-s3-deployment
+
+app = core.App()
+CdkStack(app, "MythicalMysfits-Website")
+
+app.synth()
 ```
 
 ### Copy the Web Application Code
@@ -195,106 +206,98 @@ cp -r source/module-1/web/* ./web
 
 ### Define the Website root directory
 
-Ensure the webAppRoot variable points to the `~/environment/workshop/web` directory. In the `web-application-stack.ts` file, we want to import the `path` module, which we will use to resolve the path to our website folder:
+Ensure the webAppRoot variable points to the `~/environment/workshop/web` directory. In the `web_application_stack.py` file, at the top, we want to import the `os.path` module, which we will use to resolve the path to our website folder:
 
-```typescript
-import path = require('path');
+```python
+import os.path
 ```
 
 Next, import the AWS CDK libraries we will be using.
 
-```typescript
-import s3 = require('@aws-cdk/aws-s3');
-import cloudfront = require('@aws-cdk/aws-cloudfront');
-import iam = require('@aws-cdk/aws-iam');
-import s3deploy = require('@aws-cdk/aws-s3-deployment');
+```python
+from aws_cdk import aws_cloudfront, aws_iam, aws_s3, aws_s3_deployment, core
 ```
 
-Now, within the `web-application-stack.ts` constructor, write the folllowing code.
+Now, at the end of the `CdkStack` `__init__` method, write the folllowing code.
 
-```typescript
-const webAppRoot = path.resolve(__dirname, '..', '..', 'web');
+```python
+web_app_root = os.path.realpath(os.path.join(os.path.curdir, "..", "..", "web"))
 ```
 
 ### Define the S3 bucket
 
 We are going to define our S3 bucket and define the web index document as 'index.html'
 
-```typescript
-const bucket = new s3.Bucket(this, "Bucket", {
-  websiteIndexDocument: "index.html"
-});
+```python
+bucket = aws_s3.Bucket(self, "Bucket", website_index_document="index.html")
 ```
 
 ### Restrict access to the S3 bucket
 
 We want to restrict access to our S3 bucket, and only allow access from the CloudFront distribution. We'll use an [Origin Access Identity (OAI)](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html) to allow CloudFront to access and serve files to our users.
 
-Within the `web-application-stack.ts` constructor write the folllowing code:
+Add the following code:
 
-```typescript
-const origin = new cloudfront.CfnCloudFrontOriginAccessIdentity(this, "BucketOrigin", {
-  cloudFrontOriginAccessIdentityConfig: {
-    comment: "mythical-mysfits"
-  }
-});
-
-bucket.grantRead(new iam.CanonicalUserPrincipal(
-  origin.attrS3CanonicalUserId
-));
+```python
+origin = aws_cloudfront.CfnCloudFrontOriginAccessIdentity(
+    self,
+    "BucketOrigin",
+    cloud_front_origin_access_identity_config={"comment": "mythical-mysfists"},
+)
+bucket.grant_read(
+    aws_iam.CanonicalUserPrincipal(origin.attr_s3_canonical_user_id)
+)
 ```
 
 ### CloudFront Distribution
 
 Next, Write the definition for a new CloudFront web distribution:
 
-```typescript
-const cdn = new cloudfront.CloudFrontWebDistribution(this, "CloudFront", {
-  viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.ALLOW_ALL,
-  priceClass: cloudfront.PriceClass.PRICE_CLASS_ALL,
-  originConfigs: [
-    {
-      behaviors: [
+```python
+cloudfront_distribution = aws_cloudfront.CloudFrontWebDistribution(
+    self,
+    "CloudFront",
+    viewer_protocol_policy=aws_cloudfront.ViewerProtocolPolicy.ALLOW_ALL,
+    price_class=aws_cloudfront.PriceClass.PRICE_CLASS_ALL,
+    origin_configs=[
         {
-          isDefaultBehavior: true,
-          maxTtl: undefined,
-          allowedMethods:
-            cloudfront.CloudFrontAllowedMethods.GET_HEAD_OPTIONS
+            "behaviors": [{"isDefaultBehavior": True, "max_ttl_seconds": None}],
+            "originPath": "/web",
+            "s3OriginSource": {
+                "s3BucketSource": bucket,
+                "originAccessIdentity": origin,
+            },
         }
-      ],
-      originPath: `/web`,
-      s3OriginSource: {
-        s3BucketSource: bucket,
-        originAccessIdentityId: origin.ref
-      }
-    }
-  ]
-});
+    ],
+)
 ```
 
 ### Upload the website content to the S3 bucket
 
 Now we want to use a handy CDK helper that takes the defined source directory, compresses it, and uploads it to the destination s3 bucket:
 
-```typescript
-new s3deploy.BucketDeployment(this, "DeployWebsite", {
-  source: s3deploy.Source.asset(webAppRoot),
-  destinationKeyPrefix: "web/",
-  destinationBucket: bucket,
-  distribution: cdn,
-  retainOnDelete: false
-});
+```python
+aws_s3_deployment.BucketDeployment(
+    self,
+    "DeployWebsite",
+    source=aws_s3_deployment.Source.asset(web_app_root),
+    destination_key_prefix="web/",
+    destination_bucket=bucket,
+    retain_on_delete=False,
+)
 ```
 
 ### CloudFormation Outputs
 
 Finally, we want to define a cloudformation output for the domain name assigned to our CloudFront distribution:
 
-```typescript
-new cdk.CfnOutput(this, "CloudFrontURL", {
-  description: "The CloudFront distribution URL",
-  value: "https://" + cdn.domainName
-});
+```python
+core.CfnOutput(
+    self,
+    "CloudFrontURL",
+    description="The CloudFront distribution URL",
+    value="https://{}".format(cloudfront_distribution.domain_name),
+)
 ```
 
 With that, we have completed writing the components of our module 1 stack.  Your `cdk` folder should resemble like the reference implementation, which can be found in the `workshop/source/module-1/cdk` directory.
@@ -313,9 +316,7 @@ The first time you deploy an AWS CDK app that deploys content into a S3 environm
 cdk bootstrap
 ```
 
-We can now deploy the `MythicalMysfits-Website` by executing the `cdk deploy` command from within the `cdk` folder and defining the stack we wish to deploy, such as:
-
-  cdk deploy _stackname_
+We can now deploy the `MythicalMysfits-Website` by executing the `cdk deploy` command from within the `cdk` folder and defining the stack we wish to deploy, such as: `cdk deploy STACKNAME`.
 
 Execute the following command:
 
@@ -334,6 +335,8 @@ The AWS CDK will then perform the following actions:
 * Copies the local static content to the bucket.
 * Prints the URL where you can visit your site.
 
+> **Note:** This may take a while to complete
+
 Try to navigate to the URL displayed and see you website.
 
 ![mysfits-welcome](/images/module-1/mysfits-welcome.png)
@@ -343,6 +346,5 @@ Congratulations, you have created the basic static Mythical Mysfits Website!
 That concludes Module 1.
 
 [Proceed to Module 2](/module-2)
-
 
 ## [AWS Developer Center](https://developer.aws)

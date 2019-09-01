@@ -1,0 +1,6 @@
+-e .
+aws-cdk.aws-s3
+aws-cdk.aws-cloudfront
+aws-cdk.aws-iam
+aws-cdk.aws-s3-deployment
+
